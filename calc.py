@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from math import floor
+from collections import OrderedDict
 
 def calculate_deposit(bill, due_date, next_pay_date, pay_freq):
 
@@ -31,29 +32,23 @@ def calculate_deposit(bill, due_date, next_pay_date, pay_freq):
     else:
         # weekly and fortnightly
         test_date = next_pay_date
-        while test_date <= due_date:
+        while test_date < due_date:
             pays_before_bill = pays_before_bill + 1
             test_date = test_date + timedelta(days = pay_period)
         
     if pays_before_bill == 0:
         deposit_rounded = 0
+        print("here")
     else:
         deposit = bill/pays_before_bill
-        deposit_rounded = round(deposit, 2)  
+        deposit_rounded = round(deposit, 2)
+        print("there")
 
-    if pay_freq == "weekly":
+    if pay_freq in ["weekly", "fortnightly"]:
         for i in range(pays_before_bill):
-            print("asdf")
-            pay_date = next_pay_date + timedelta(days = 7*i)
-            pays_dict[pay_date] += deposit_rounded
-    elif pay_freq == "fortnightly":
-        for i in range(pays_before_bill):
-            pay_date = next_pay_date + timedelta(days = 14*i)
+            pay_date = next_pay_date + timedelta(days = (pay_period*i))
             pays_dict[pay_date] += deposit_rounded
     elif pay_freq == "monthly":
-        # TODO
-        print("TODO")
-    else:
         # TODO
         print("TODO")
 
@@ -82,8 +77,7 @@ def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
                 pay_period = 7
             elif pay_freq == "fortnightly":
                 pay_period = 14
-            while next_pay_date <= due_date:
-                next_pay_date = next_pay_date + timedelta(days=pay_period)
+            next_pay_date = next_pay_date + timedelta(days=pay_period)
 
         # special case monthly because timedelta doesn't handle it
         if pay_freq == "monthly":
@@ -140,9 +134,9 @@ def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
 # Test
 #
 
-fake_due_date = datetime(2017, 11, 8, 12)
-fake_next_pay_date = datetime(2017, 11, 3, 13)
-fake_pay_freq = "weekly"
+fake_due_date = datetime(2017, 11, 8)
+fake_next_pay_date = datetime(2017, 11, 3)
+fake_pay_freq = "fortnightly"
 fake_bill = 50.00
 fake_debt_freq = "fortnightly"
 
@@ -152,21 +146,23 @@ next_pay_date = fake_next_pay_date
 pays_dict = {}
 
 if pay_freq == "weekly":
-    for i in range(70):
-        pay_date = next_pay_date + timedelta(days = 7*i)
-        pays_dict[pay_date] = 0
+    pay_period = 7
 elif pay_freq == "fortnightly":
-    for i in range(40):
-        pay_date = next_pay_date + timedelta(days = 14*i)
+    pay_period = 14
+
+if pay_freq in ["weekly", "fortnightly"]:
+    pay_date = next_pay_date
+    pays_dict[pay_date] = 0
+    for i in range(50):
+        pay_date = pay_date + timedelta(days = pay_period)
         pays_dict[pay_date] = 0
 elif pay_freq == "monthly":
     # TODO
     print("TODO")
-else:
-    # TODO
-    print("expected weekly, fortnightly, monthly for pay freq")
 
 calc_reoccuring_cost (fake_bill, fake_due_date, fake_debt_freq, next_pay_date, pay_freq)
 
-for i in pays_dict:
-    print(pays_dict[i])
+pays_dict = OrderedDict(sorted(pays_dict.items(), key=lambda x: x[0]))
+
+for date, deposit in pays_dict.iteritems():
+    print(str(date) + ": " + str(deposit))
