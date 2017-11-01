@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from math import floor
 from collections import OrderedDict
+from matplotlib import pyplot as plt
 
 def calculate_deposit(bill, due_date, next_pay_date, pay_freq):
 
@@ -37,12 +38,11 @@ def calculate_deposit(bill, due_date, next_pay_date, pay_freq):
             test_date = test_date + timedelta(days = pay_period)
         
     if pays_before_bill == 0:
+        # TODO account for debt_freq < pay_freq
         deposit_rounded = 0
-        print("here")
     else:
         deposit = bill/pays_before_bill
         deposit_rounded = round(deposit, 2)
-        print("there")
 
     if pay_freq in ["weekly", "fortnightly"]:
         for i in range(pays_before_bill):
@@ -134,14 +134,8 @@ def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
 # Test
 #
 
-fake_due_date = datetime(2017, 11, 8)
-fake_next_pay_date = datetime(2017, 11, 3)
-fake_pay_freq = "fortnightly"
-fake_bill = 50.00
-fake_debt_freq = "fortnightly"
-
-pay_freq = fake_pay_freq
-next_pay_date = fake_next_pay_date
+next_pay_date = datetime(2017, 11, 3)
+pay_freq = "fortnightly"
 
 pays_dict = {}
 
@@ -153,16 +147,47 @@ elif pay_freq == "fortnightly":
 if pay_freq in ["weekly", "fortnightly"]:
     pay_date = next_pay_date
     pays_dict[pay_date] = 0
-    for i in range(50):
+    for i in range(102):
         pay_date = pay_date + timedelta(days = pay_period)
         pays_dict[pay_date] = 0
 elif pay_freq == "monthly":
     # TODO
     print("TODO")
 
-calc_reoccuring_cost (fake_bill, fake_due_date, fake_debt_freq, next_pay_date, pay_freq)
+
+fake_bill_1 = 50.00
+fake_due_date_1 = datetime(2017, 11, 8)
+fake_debt_freq_1 = "fortnightly"
+
+fake_bill_2 = 821.00
+fake_due_date_2 = datetime(2018, 1, 18)
+
+fake_bill_3 = 68.00
+fake_due_date_3 = datetime(2017, 11, 6)
+fake_debt_freq_3 = "weekly"
+
+fake_bill_4 = 3279.00
+fake_due_date_4 = datetime(2018, 4, 6)
+
+#calc_reoccuring_cost (fake_bill_1, fake_due_date_1, fake_debt_freq_1, next_pay_date, pay_freq)
+
+#calculate_deposit(fake_bill_2, fake_due_date_2, next_pay_date, pay_freq)
+
+calc_reoccuring_cost (fake_bill_3, fake_due_date_3, fake_debt_freq_3, next_pay_date, pay_freq)
+
+#calculate_deposit(fake_bill_4, fake_due_date_4, next_pay_date, pay_freq)
+
+pays_dict = {key: value for key, value in pays_dict.items() if value != 0}
 
 pays_dict = OrderedDict(sorted(pays_dict.items(), key=lambda x: x[0]))
 
 for date, deposit in pays_dict.iteritems():
     print(str(date) + ": " + str(deposit))
+
+lists = sorted(pays_dict.items())
+x, y = zip(*lists)
+
+plt.bar(x, y, 1, color="blue")
+
+fig = plt.gcf()
+plt.show()
