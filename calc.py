@@ -3,19 +3,19 @@ from math import floor
 from collections import OrderedDict
 from matplotlib import pyplot as plt
 
-def calculate_deposit(bill, due_date, next_pay_date, pay_freq):
-
+def get_pay_period(pay_freq):
     if pay_freq == "weekly":
-        pay_period = 7
+        return 7
     elif pay_freq == "fortnightly":
-        pay_period = 14
+        return 14
+
+def calculate_deposits(bill, due_date, next_pay_date, pay_freq):
 
     pays_before_bill = 0
+    test_date = next_pay_date
 
     # special case monthly because timedelta doesn't handle it
     if pay_freq == "monthly":
-        test_date = next_pay_date
-
         while test_date <= due_date:
             test_month = test_date.strftime("%m")
             new_test_month = int(test_month) + 1
@@ -29,34 +29,28 @@ def calculate_deposit(bill, due_date, next_pay_date, pay_freq):
             else:
                 test_date = test_date.replace(month=new_test_month)
                 pays_before_bill += 1
-
     else:
         # weekly and fortnightly
-        test_date = next_pay_date
         while test_date < due_date:
             pays_before_bill = pays_before_bill + 1
+            pay_period = get_pay_period(pay_freq)
             test_date = test_date + timedelta(days = pay_period)
-        
+
     if pays_before_bill == 0:
-        # TODO account for debt_freq < pay_freq
-        deposit_rounded = 0
+        return False
     else:
         deposit = bill/pays_before_bill
-        deposit_rounded = round(deposit, 2)
 
-    if pay_freq in ["weekly", "fortnightly"]:
-        for i in range(pays_before_bill):
-            pay_date = next_pay_date + timedelta(days = (pay_period*i))
-            pays_dict[pay_date] += deposit_rounded
-    elif pay_freq == "monthly":
-        # TODO
-        print("TODO")
-
-    return deposit_rounded
+        if pay_freq in ["weekly", "fortnightly"]:
+            for i in range(pays_before_bill):
+                pay_date = next_pay_date + timedelta(days = (pay_period*i))
+                pays_dict[pay_date] += deposit
+        elif pay_freq == "monthly":
+            # TODO
+            print("TODO")
+        return True
 
 def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
-    # debt_freq = "weekly", "fortnightly", "monthly", "quarterly", "biannually", "annually"
-    # pay_freq = "weekly", "fortnightly", "monthly"
 
     if pay_freq == "weekly":
         due_date_1_year = due_date + timedelta(days = 52*7)
@@ -67,16 +61,13 @@ def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
     else:
         print("TODO")
 
-    deposit = calculate_deposit (bill, due_date, next_pay_date, pay_freq)
+    deposit = calculate_deposits (bill, due_date, next_pay_date, pay_freq)
 
     while due_date <= due_date_1_year:
 
         # Find next_pay_date after bill is paid
         if pay_freq in ["weekly", "fortnightly"]:
-            if pay_freq == "weekly":
-                pay_period = 7
-            elif pay_freq == "fortnightly":
-                pay_period = 14
+            pay_period = get_pay_period(pay_freq)
             next_pay_date = next_pay_date + timedelta(days=pay_period)
 
         # special case monthly because timedelta doesn't handle it
@@ -107,7 +98,7 @@ def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
                 due_date = due_date.replace(month=test_month)
         elif debt_freq == "quarterly":
             test_month = int(due_date.strftime("%m")) + 3
-            # replace with mod
+            # TODO replace with mod
             if test_month in [13, 14, 15]:
                 new_month = test_month - 12
                 new_year = int(due_date.strftime("%Y")) + 1
@@ -128,7 +119,15 @@ def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
         elif debt_freq == "annually":
             due_date = due_date + timedelta(years=1)
 
-        calculate_deposit (bill, due_date, next_pay_date, pay_freq)
+        if (calculate_deposits (bill, due_date, next_pay_date, pay_freq)) == False:
+            calculate_savings (bill, due_date, next_pay_date, pay_freq)
+
+def calculate_savings (bill, due_date, next_pay_date, pay_freq):
+    # need to go back in time to add savings
+    # Find next_pay_date after bill is paid
+    if pay_freq in ["weekly", "fortnightly"]:
+        pay_period = get_pay_period(pay_freq)
+        next_pay_date = next_pay_date + timedelta(days=pay_period)
 
 #
 # Test
@@ -137,23 +136,23 @@ def calc_reoccuring_cost (bill, due_date, debt_freq, next_pay_date, pay_freq):
 next_pay_date = datetime(2017, 11, 3)
 pay_freq = "fortnightly"
 
+# initialize pay dates: deposits ammounts dict
+
 pays_dict = {}
 
-if pay_freq == "weekly":
-    pay_period = 7
-elif pay_freq == "fortnightly":
-    pay_period = 14
-
 if pay_freq in ["weekly", "fortnightly"]:
+    pay_period = get_pay_period(pay_freq)
     pay_date = next_pay_date
     pays_dict[pay_date] = 0
-    for i in range(102):
+    # arbitrarily big
+    for i in range(99):
         pay_date = pay_date + timedelta(days = pay_period)
         pays_dict[pay_date] = 0
 elif pay_freq == "monthly":
     # TODO
     print("TODO")
 
+# Tests
 
 fake_bill_1 = 50.00
 fake_due_date_1 = datetime(2017, 11, 8)
@@ -171,23 +170,26 @@ fake_due_date_4 = datetime(2018, 4, 6)
 
 #calc_reoccuring_cost (fake_bill_1, fake_due_date_1, fake_debt_freq_1, next_pay_date, pay_freq)
 
-#calculate_deposit(fake_bill_2, fake_due_date_2, next_pay_date, pay_freq)
+#calculate_deposits(fake_bill_2, fake_due_date_2, next_pay_date, pay_freq)
 
 calc_reoccuring_cost (fake_bill_3, fake_due_date_3, fake_debt_freq_3, next_pay_date, pay_freq)
 
-#calculate_deposit(fake_bill_4, fake_due_date_4, next_pay_date, pay_freq)
+#calculate_deposits(fake_bill_4, fake_due_date_4, next_pay_date, pay_freq)
 
-pays_dict = {key: value for key, value in pays_dict.items() if value != 0}
+
+# graphing
+
+# pays_dict = {key: value for key, value in pays_dict.items() if value != 0}
 
 pays_dict = OrderedDict(sorted(pays_dict.items(), key=lambda x: x[0]))
 
-for date, deposit in pays_dict.iteritems():
-    print(str(date) + ": " + str(deposit))
+for date, deposit in pays_dict.items():
+    print(str(date) + ": " + str(round(deposit, 2)))
 
-lists = sorted(pays_dict.items())
-x, y = zip(*lists)
-
-plt.bar(x, y, 1, color="blue")
-
-fig = plt.gcf()
-plt.show()
+# lists = sorted(pays_dict.items())
+# x, y = zip(*lists)
+#
+# plt.bar(x, y, 1, color="blue")
+#
+# fig = plt.gcf()
+# plt.show()
